@@ -394,13 +394,13 @@ roma.perceptron@gmail.com | telegram: @roma_perceptron
     
 # --- prepare monitoring in three steps:
 # 1. Define list of metrics which you will write to CSV file. You must use same names
-history_fields = ['accuracy', 'val accuracy', 'loss', 'val loss']
+# history_fields = ['accuracy', 'val accuracy', 'loss', 'val loss']
 
 # 2. Create instance of DLRTN class
-dlrtm_instance = DeepLearningRealTimeMonitoring(endpoint='/content', history_fields = history_fields)
+# dlrtm_instance = DeepLearningRealTimeMonitoring(endpoint='/content', history_fields = history_fields)
 
 # 3. Render interface
-display(dlrtm_instance.get_interface())
+# display(dlrtm_instance.get_interface())
 
 # now you should start training process. Don't remember to implement writing
 # history data to csv-file and making preview of generated images (if GAN)
