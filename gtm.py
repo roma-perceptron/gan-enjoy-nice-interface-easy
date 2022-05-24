@@ -27,12 +27,6 @@ import matplotlib.pyplot as plt
 class DeepLearningRealTimeMonitoring():
   # 
   def __init__(self, endpoint, history_fields, separator=';', reload_time=10, preview_size=200, clear_generated=True, plt_style='default'):
-  #     
-    # cheking path for endpoint
-    if not os.path.exists(self.ENDPOINT):
-      # try to create path if parent folder exist, else raised FileNotFoundError
-      os.mkdir(self.ENDPOINT)
-
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
@@ -48,6 +42,11 @@ class DeepLearningRealTimeMonitoring():
     self.images_volume = 0
     self.df = pd.DataFrame({f: sorted([1 if abs(n) >=1 else abs(n) for n in np.random.normal(-0.5, 0.5, size=100)], reverse=True if 'loss' in f else False) for f in history_fields})
 
+    # cheking path for endpoint
+    if not os.path.exists(self.ENDPOINT):
+      # try to create path if parent folder exist, else raised FileNotFoundError
+      os.mkdir(self.ENDPOINT)
+    
     # initializing
     self._prepare_history_file()
     self._create_generated_path()
