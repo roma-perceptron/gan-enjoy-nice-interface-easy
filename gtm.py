@@ -27,6 +27,12 @@ import matplotlib.pyplot as plt
 class DeepLearningRealTimeMonitoring():
   # 
   def __init__(self, endpoint, history_fields, separator=';', reload_time=10, preview_size=200, clear_generated=True, plt_style='default'):
+  #     
+    # cheking path for endpoint
+    if not os.path.exists(ENDPOINT):
+      # try to create path if parent folder exist, else raised FileNotFoundError
+      os.mkdir(ENDPOINT)
+
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
