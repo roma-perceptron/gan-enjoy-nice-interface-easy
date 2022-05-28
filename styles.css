@@ -1,0 +1,23 @@
+<style>
+  *_ {
+    border: 1px dotted red;
+  }
+
+  .main {
+    height: 100%;
+    min-height: 1000px;
+    background: linear-gradient(45deg, #eeeeee 25%, transparent 25%, transparent 75%, #f5f5f5 75%),
+                linear-gradient(45deg, #eeeeee 25%, transparent 25%, transparent 75%, #f5f5f5 75%) 0.1875em 0.1875em,
+                radial-gradient(at 50% 0, #f5f5f5, #eeeeee);
+    background-size: 0.375em 0.375em, 0.375em 0.375em, 100% 100%;
+  }
+
+  .upper_box {
+    height: 40% !important;
+  }
+
+  .lower_box {
+    height: 60% !important;
+  }
+
+</style>
