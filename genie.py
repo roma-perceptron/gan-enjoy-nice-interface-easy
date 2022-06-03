@@ -17,11 +17,12 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from PIL import Image
+
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
 from IPython.display import Javascript
-
 from genie.genie_texts import GENIE_Texts
 
 
