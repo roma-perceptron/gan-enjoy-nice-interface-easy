@@ -476,7 +476,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     # upload stylesheet file
     print(os.listdir())
-    with open('./utils/styles.css', mode='r') as f:
+    with open('/genie/utils/styles.css', mode='r') as f:
       data_input_style = f.read()
 
     # apply styles
