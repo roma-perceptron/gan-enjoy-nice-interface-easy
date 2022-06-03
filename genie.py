@@ -475,7 +475,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     lower_box.add_class('lower_box')
 
     # upload stylesheet file
-    with open('/utils/styles.css', mode='r') as f:
+    with open('utils/styles.css', mode='r') as f:
       data_input_style = f.read()
 
     # apply styles
