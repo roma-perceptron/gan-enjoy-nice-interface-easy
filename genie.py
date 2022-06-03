@@ -224,7 +224,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       ax = l_plot if 'loss' in param else m_plot
       if param not in exclude:
         # показываю примерный тренд
-        if show_trend in param:
+        if show_trend:
           # xdots, ydots это набор икс-координат, и y-координат по отдельности!
           xdots = len(history[param])//2, len(history[param])-1
           ydots = history[param][len(history[param])//2], history[param][-1]
