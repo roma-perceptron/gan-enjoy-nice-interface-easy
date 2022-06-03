@@ -340,8 +340,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
       with output_for_props:
         clear_output(wait=True)
-        if gan_monitor.epoch > 0:
-          print(f'Эпоха #{gan_monitor.epoch} завершена')
+        if self.epoch > 0:
+          print(f'Эпоха #{self.epoch} завершена')
           # print(slider_update.value, '/', slider_update.max)
         if slider_update.value == slider_update.max:
           print('Обновляюсь..')
