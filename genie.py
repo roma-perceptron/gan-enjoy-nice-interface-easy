@@ -170,11 +170,11 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
   # read image in bytes
   def _get_genered_image(self, index=-1):
-  """
-  Get image with given index within generated pics
-  :param index: int, idex of necessary image, default -1 (last)
-  :return: tuple of image in bytes and str number of epoch from file name
-  """
+    """
+    Get image with given index within generated pics
+    :param index: int, idex of necessary image, default -1 (last)
+    :return: tuple of image in bytes and str number of epoch from file name
+    """
     if os.path.exists(self.GENERATED) and len(os.listdir(self.GENERATED)) > 0:
       path_for_generated = self.GENERATED
     else:
