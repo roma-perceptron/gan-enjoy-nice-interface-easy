@@ -80,7 +80,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     It seems that ipywidgets upload remote font which don't exist now.
     So, I use my own version instead. 
     """
-    with open('/utils/fontawesome.js') as f:
+    with open('genie/utils/fontawesome.js') as f:
       js_code = f.read()
     display(Javascript(js_code))
 
@@ -478,7 +478,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     print(os.listdir())
     with open('test.txt', mode='w') as f:
       f.write('test')
-    with open('/genie/utils/styles.css', mode='r') as f:
+    with open('genie/utils/styles.css', mode='r') as f:
       data_input_style = f.read()
 
     # apply styles
