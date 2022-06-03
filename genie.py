@@ -20,7 +20,7 @@ import pandas as pd
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
-from genie_texts import GENIE_Texts
+from genie.genie_texts import GENIE_Texts
 from IPython.display import Javascript
 
 
