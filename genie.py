@@ -20,8 +20,9 @@ import pandas as pd
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
-from genie.genie_texts import GENIE_Texts
 from IPython.display import Javascript
+
+from genie.genie_texts import GENIE_Texts
 
 
 
