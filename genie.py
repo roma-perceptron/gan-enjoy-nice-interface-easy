@@ -80,7 +80,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     It seems that ipywidgets upload remote font which don't exist now.
     So, I use my own version instead. 
     """
-    with open('/content/fontawesome.js') as f:
+    with open('/util/fontawesome.js') as f:
       js_code = f.read()
     display(Javascript(js_code))
 
@@ -475,8 +475,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     lower_box.add_class('lower_box')
 
     # upload stylesheet file
-    # /content/drive/MyDrive/lesson 17 GANs/styles.css
-    with open('/content/drive/MyDrive/lesson 17 GANs/styles.css', mode='r') as f:
+    with open('/util/styles.css', mode='r') as f:
       data_input_style = f.read()
 
     # apply styles
