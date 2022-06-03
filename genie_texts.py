@@ -3,6 +3,10 @@
 class GENIE_Texts():
     def __init__(self, lang='rus'):
         self.lang = lang
+        
+    def hello(self):
+        text = {'rus': rus_hello, 'eng': eng_hello}
+        print(text[self.lang])
 
     def example(self):
         text = {'rus': rus_example, 'eng': eng_example}
