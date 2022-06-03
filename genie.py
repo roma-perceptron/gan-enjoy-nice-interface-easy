@@ -66,12 +66,12 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.images_volume = len(os.listdir(self.GENERATED))
     plt.style.use(plt_style)
     
-    # create interface
-    self.interface = self.get_interface()
-
     # show hello
     if not silent:
       print(self.TXT.hello())
+    
+    # create interface
+    self.interface = self.get_interface()
 
 
   # eternal function and methods
