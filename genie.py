@@ -167,7 +167,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     Return last epoch number from generated images names
     :return: int, number of last epoch
     """
-    files = self._get_filelist_sorted(path_for_generated)
+    files = self._get_filelist_sorted(self.GENERATED)
     return int(files[-1].split('.')[0].split('_e')[-1])
 
   # read image in bytes
@@ -475,9 +475,6 @@ class GAN_Enjoy_Nice_Interface_Easy():
     lower_box.add_class('lower_box')
 
     # upload stylesheet file
-    print(os.listdir())
-    with open('test.txt', mode='w') as f:
-      f.write('test')
     with open('genie/utils/styles.css', mode='r') as f:
       data_input_style = f.read()
 
