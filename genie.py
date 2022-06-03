@@ -23,6 +23,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
 from IPython.display import Javascript
+from IPython.display import clear_output
 from genie.genie_texts import GENIE_Texts
 
 
