@@ -6,7 +6,7 @@ class GENIE_Texts():
         
     def hello(self):
         text = {'rus': rus_hello, 'eng': eng_hello}
-	return text[self.lang]
+		return text[self.lang]
 
     def example(self):
         text = {'rus': rus_example, 'eng': eng_example}
