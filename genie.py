@@ -3,7 +3,7 @@
 """
 GAN: Enjoy Nice Interface Easy или просто GENIE это небольшая библиотека предназанченная
 для облегчения процесса мониторинга за обучением генеративно-состязательных сетей (GAN).
-А в будущем, возможно появятся возможно по управлению гаперпараметрами.
+А в будущем, возможно появятся и управление гаперпараметрами.
 """
 
 # imports
@@ -264,7 +264,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     """
 
     # iternal functions and widget-callbacks
-    # (with "self_widget" argument instead "self" reserved for class instance) #
+    # (use "self_widget" argument instead "self" reserved for class instance) #
     def change_image_preview(self_widget):
       img_bytes, epoch_num = self._get_genered_image(slider_image.value)
       img_preview.value = img_bytes
@@ -339,6 +339,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
       with output_for_props:
         clear_output(wait=True)
+        if self.epoch == self.epochs-1:
+          update_widget.unlink()
+          print(f'Обучение завершено! {self.epochs} эпох!')
         if self.epoch > 0:
           print(f'Эпоха #{self.epoch} завершена')
           # print(slider_update.value, '/', slider_update.max)
