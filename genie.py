@@ -103,6 +103,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     :param epochs: int, number of epoch to current train process
     """
     self.control_command_code = ''
+    self.epoch = 0
     self.epochs = epochs
     self.last_epoch_of_previous_train = self._get_last_epoch_of_previous_train()
     display(self.interface)
