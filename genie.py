@@ -547,8 +547,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
 
   def help(self):
-    self.TXT.help()
+    print(self.TXT.help())
 
   def example():
-    self.TXT.example()
+    print(self.TXT.example())
 
