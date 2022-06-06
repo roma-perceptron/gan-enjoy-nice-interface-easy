@@ -20,4 +20,8 @@
     height: 60% !important;
   }
 
+  .girl-update_box {
+    display: none;
+  }
+
 </style>
