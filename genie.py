@@ -329,7 +329,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     # global updater by timer
     def update_data(self_widget):
-      training_progress = round(100 * (self.epoch / self.epochs), 2)
+      training_progress = round(100 * (self.epoch / (self.epochs-1)), 2)
       training_progress_bar.value = training_progress
       training_progress_lbl.value = f'Прогресс обучения: {training_progress}%'
 
@@ -340,6 +340,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       with output_for_props:
         clear_output(wait=True)
         if self.epoch == self.epochs-1:
+          clear_output()
           update_widget.unlink()
           print(f'Обучение завершено! {self.epochs} эпох!')
         if self.epoch > 0:
