@@ -157,7 +157,7 @@ GAN: Enjoy Nice Interface Easy или просто GENIE это небольша
 	  	
 		# этот код преобразует последние save_period записей в словарях в строки для дозаписи
         data_for_write = zip(*[history[field][-save_period:] for field in metrics_for_monitoring])
-        string_lines = [';'.join([str(e) for e in line])+'\n' for line in data_for_write]
+        string_lines = [';'.join([str(e) for e in line])+'\\n' for line in data_for_write]
 		
 		# для дозаписи используется встроенный метод из экземпляра класса genie
         genie.write_to_history_file(string_lines)
