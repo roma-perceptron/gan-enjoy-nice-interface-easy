@@ -304,7 +304,6 @@ class GAN_Enjoy_Nice_Interface_Easy():
         self.allowed_refresh_graph = False
 
       if os.path.getsize(self.HISTORY_FILE) > 100:
-        print('hey! change df now!', os.path.getsize(self.HISTORY_FILE))
         self.df = pd.read_csv(self.HISTORY_FILE, sep=';')
 
         # обновление графиков
