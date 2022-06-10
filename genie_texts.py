@@ -6,15 +6,15 @@ class GENIE_Texts():
 
 	def hello(self):
 		text = {'rus': rus_hello, 'eng': eng_hello}
-		return text[self.lang]
+		return text[self.lang].strip()
 
 	def example(self):
 		text = {'rus': rus_example, 'eng': eng_example}
-		return text[self.lang]
+		return text[self.lang].strip()
 
 	def help(self):
 		text = {'rus': rus_help, 'eng': eng_help}
-		return text[self.lang]
+		return text[self.lang].strip()
 
 
 rus_example = '''
@@ -193,10 +193,10 @@ Sorry, english version in process, try russian.
 '''
 
 rus_hello = '''
-Привет! Используй метод help() если нужно больше инофмации и примеры!
+Отлично, все готово к работе! Используй метод help() если нужно больше инофмации и примеры.
 '''
 
 eng_hello = '''
-Hi! Try help() for more information and examples!
+Great, ready to work! Try help() for more information and examples.
 '''
 
