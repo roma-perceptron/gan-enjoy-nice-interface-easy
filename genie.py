@@ -1,3 +1,4 @@
+from ipywidgets.widgets.widget_layout import Layout
 # coding=utf-8
 
 """
@@ -27,18 +28,13 @@ from IPython.display import clear_output
 from genie.genie_texts import GENIE_Texts
 
 
-
-# self.df = pd.DataFrame({f: sorted([1 if abs(n) >=1 else abs(n) for n in np.random.normal(-0.5, 0.5, size=100)], reverse=True if 'loss' in f else False) for f in history_fields})
-
-
 class GAN_Enjoy_Nice_Interface_Easy():
   # 
-  def __init__(self, endpoint, history_fields, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False):
+  def __init__(self, endpoint, history_fields, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=5):
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
     self.GENERATED = self.ENDPOINT + 'generated/'
-    self._GENERATED = self.ENDPOINT + '_generated/'
     self.SEPARATOR = separator
     self.PREVIEW_SIZE = preview_size
     self.FIELDNAMES = history_fields
@@ -47,12 +43,13 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.TXT = GENIE_Texts(lang=lang)
 
     # class variables
+    self.initial_update_delay = update_delay
     self.allowed_refresh_graph = True
     self.allowed_refresh_image = True
     self.images_volume = 0
     self.df = pd.DataFrame({f: [None] for f in self.FIELDNAMES})
     self.control_command_code = ''
-    self.epoch = 0
+    self.epoch = -1
     self.epochs = 0
     self.last_epoch_of_previous_train = 0
 
@@ -103,10 +100,13 @@ class GAN_Enjoy_Nice_Interface_Easy():
     :param epochs: int, number of epoch to current train process
     """
     self.control_command_code = ''
-    self.epoch = 0
+    self.epoch = -1
     self.epochs = epochs
     self.last_epoch_of_previous_train = self._get_last_epoch_of_previous_train()
     display(self.interface)
+    self.stop_button.layout.display = 'block'
+    with self.output_for_props:
+      clear_output()
     self._patch_fontawesome()
     self._press_play_button()
 
@@ -140,7 +140,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
   def _create_zero_epoch_image(self):
     """
-    If generated path are empty, create total black image as first pre-training
+    If generated path are empty, create black image as first pre-training
     result of model.
     """
     if not os.listdir(self.GENERATED):
@@ -148,8 +148,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       pic = Image.fromarray(generated.astype('uint8'), mode='RGB')
       pic.format = 'png'
 
-      next_num = len(os.listdir(self.GENERATED)) + 1
-      pic.save('{}/0_e0.png'.format(self.GENERATED), format='png')
+      pic.save('{}/before_the_times.png'.format(self.ENDPOINT), format='png')
 
 
   def _get_filelist_sorted(self, pathname):
@@ -169,29 +168,33 @@ class GAN_Enjoy_Nice_Interface_Easy():
     Return last epoch number from generated images names
     :return: int, number of last epoch
     """
-    files = self._get_filelist_sorted(self.GENERATED)
-    return int(files[-1].split('.')[0].split('_e')[-1])
+    if os.path.exists(self.GENERATED) and len(os.listdir(self.GENERATED)) > 0:
+      files = self._get_filelist_sorted(self.GENERATED)
+      return int(files[-1].split('.')[0].split('_e')[-1]) + 1
+    else:
+      return 0
+
 
   # read image in bytes
   def _get_genered_image(self, index=-1):
     """
-    Get image with given index within generated pics
+    Get image with given index within generated pics. If images not genered yet,
+    return black 'before the times' square.
     :param index: int, idex of necessary image, default -1 (last)
     :return: tuple of image in bytes and str number of epoch from file name
     """
     if os.path.exists(self.GENERATED) and len(os.listdir(self.GENERATED)) > 0:
-      path_for_generated = self.GENERATED
+      # 
+      files = self._get_filelist_sorted(self.GENERATED)
+      genenered_image_name = files[index]
+      with open(self.GENERATED+genenered_image_name, mode='rb') as f:
+        genered_image_bytes = f.read()
+      # 
+      return genered_image_bytes, genenered_image_name.split('.')[0].split('_e')[-1]
     else:
-      self._create_pseudo_generated_path()
-      path_for_generated = self._GENERATED
-    # 
-    files = self._get_filelist_sorted(path_for_generated)
-    genenered_image_name = files[index]
-    with open(path_for_generated+genenered_image_name, mode='rb') as f:
-      genered_image_bytes = f.read()
-    # 
-    return genered_image_bytes, genenered_image_name.split('.')[0].split('_e')[-1]
-
+      with open(self.ENDPOINT + '/before_the_times.png', mode='rb') as f:
+        genered_image_bytes = f.read()
+      return genered_image_bytes, 'before the times'
 
 
   # draw plot for loss and metrics
@@ -319,6 +322,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       # обновление картинки
       self.images_volume = len(os.listdir(self.GENERATED))
       slider_image.min = -self.images_volume
+      play_buttons.min = -self.images_volume
       update_image_preview(None)
       
       # обновление таблицы
@@ -340,13 +344,18 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
       with output_for_props:
         clear_output(wait=True)
-        if self.epoch == self.epochs-1:
-          clear_output()
-          update_widget.unlink()
-          print(f'Обучение завершено! {self.epochs} эпох!')
         if self.epoch > 0:
           print(f'Эпоха #{self.epoch} завершена')
-          # print(slider_update.value, '/', slider_update.max)
+        if self.epoch == self.epochs-1:
+          clear_output()
+          update_buttons._playing = False
+          stop_button.layout.display = 'none'
+          print(f'Обучение завершено! {self.epochs} эпох!')
+          updating_progress = 100.00
+          updating_progress_bar.value = updating_progress
+          updating_progress_lbl.value = f'Обновление: {updating_progress}%'
+          update_all(self)
+          return None
         if slider_update.value == slider_update.max:
           print('Обновляюсь..')
           update_all(self)
@@ -358,9 +367,11 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     def stop_training(self_widget):
       self.control_command_code = 'stop_training'
-      update_widget.unlink()
+      stop_button.layout.display = 'none'
+      update_buttons._playing = False
       with output_for_props:
         print('Останавливаю обучение..')
+        update_all(self)
 
     def change_delay_time(self_widget):
       slider_update.max = 2 * slider_update_delay.value
@@ -372,21 +383,23 @@ class GAN_Enjoy_Nice_Interface_Easy():
     # create outputs
     output_for_graph = widgets.Output()
     output_for_table = widgets.Output()
-    output_for_props = widgets.Output()
+    output_for_props = widgets.Output(layout=widgets.Layout(height='75px'))
     output_for_prevs = widgets.Output()
+    
+    self.output_for_props = output_for_props
 
     # auto updating mechanism
     update_buttons = widgets.Play(
-        value=15,
+        value=self.initial_update_delay*2,
         min=1,
-        max=16,
+        max=self.initial_update_delay*2,
         step=1,
         interval=500,
         description="Press play",
         _repeat = True
     )
-    slider_update = widgets.IntSlider(15, min=1, max=16, readout=True)
-    update_widget = widgets.jslink((update_buttons, 'value'), (slider_update, 'value'))
+    slider_update = widgets.IntSlider(self.initial_update_delay*2, min=1, max=self.initial_update_delay*2, readout=True)
+    update_widget = widgets.link((update_buttons, 'value'), (slider_update, 'value'))
     update_box = widgets.HBox([update_buttons, slider_update], layout=widgets.Layout(width='95%'))
     # 
     update_box.add_class('girl-update_box')
@@ -394,7 +407,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     update_buttons.observe(start_updating, names='_playing')
     slider_update.observe(update_data, names='value')
     # 
-    slider_update_delay = widgets.IntSlider(8, min=1, max=60, continuous_update=False, readout=True, layout=widgets.Layout())
+    slider_update_delay = widgets.IntSlider(self.initial_update_delay, min=1, max=60, continuous_update=False, readout=True, layout=widgets.Layout())
     slider_update_delay.observe(change_delay_time)
     
     # groups of widget for preview generated images
@@ -405,12 +418,12 @@ class GAN_Enjoy_Nice_Interface_Easy():
         layout=widgets.Layout(border='3px outset #e0e0e0')
     )
     # 
-    slider_image = widgets.IntSlider(-1, min=-self.images_volume, max=-1, continuous_update=False, readout=False, layout=widgets.Layout())
+    slider_image = widgets.IntSlider(-1, min=-2, max=-1, continuous_update=False, readout=False)
     slider_image.observe(change_image_preview, names='value')
     # 
     play_buttons = widgets.Play(
         value=-1,
-        min=-self.images_volume,
+        min=-2,
         max=-1,
         step=1,
         interval=200,
@@ -422,8 +435,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
     epoch_label = widgets.Label(value='before training')
 
     # stop button
-    stop_button = widgets.Button(description='завершить обучение')
+    stop_button = widgets.Button(description='завершить обучение', icon='cancel')
+    stop_button.layout.width = 'initial'
     stop_button.on_click(stop_training)
+    self.stop_button = stop_button
 
     #progress bars
     training_progress_lbl = widgets.Label('Прогресс обучения: 0%')
@@ -474,7 +489,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     preview_box = widgets.VBox([img_preview, epoch_label, play_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='35%', align_items='center'))
     upper_box = widgets.HBox([preview_box, table_box, props_box], layout=widgets.Layout(justify_content='space-between'))
     lower_box = widgets.VBox([metrics_box, graph_box, epochs_range_box])
-    main_box = widgets.VBox([upper_box, lower_box, output_for_props], layout=widgets.Layout(align_content='space-around', border='10px solid transparent', width='100%'))
+    main_box = widgets.VBox([upper_box, lower_box], layout=widgets.Layout(align_content='space-around', border='10px solid transparent', width='100%'))
     # 
     upper_box.add_class('upper_box')
     lower_box.add_class('lower_box')
@@ -491,14 +506,16 @@ class GAN_Enjoy_Nice_Interface_Easy():
     return interface
 
 
+  # def how_many_lines(self):
+  #   with open(self.HISTORY_FILE) as f:
+  #     return sum(1 for line in f) - 1   # minus 1, because first is header
+
+
   # отрисовква генерации
-  def show_gen_cat(self, generator, noise, epoch_number=0, verbose=0, path_for_generated=''):
+  def show_gen_cat(self, generator, noise, epoch_number=False, verbose=0, path_for_generated=''):
   # 
     """
-    Надо добавить self.last_epoch_number и к нему добавлять текущий номер эпохи.
-    Определять этот last по номеру эпохи из последнего файла в generated!
     """
-    # self.last_epoch_of_previous_train
     mode = None
     generated = generator.predict(np.asarray([noise]))[0]
     if generated.ndim == 3 and generated.shape[-1] == 3:
@@ -511,8 +528,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     if not path_for_generated:
       path_for_generated = self.GENERATED
-    next_num = len(os.listdir(path_for_generated)) + 1
-    epoch_number = self.last_epoch_of_previous_train + epoch_number
+    next_num = len(os.listdir(path_for_generated))
+
+    if not epoch_number:
+      epoch_number = self.last_epoch_of_previous_train + self.epoch
     pic.save('{}/{}_e{}.png'.format(path_for_generated, next_num, epoch_number), format='png')
 
     if verbose:
@@ -550,9 +569,20 @@ class GAN_Enjoy_Nice_Interface_Easy():
       f.writelines(lines)
 
 
+  def update_data(self, params):
+    """
+    Interface for transfer history params from your training function to GENIE
+    :param params: dict, key-value and keys must be same as 'metrics_for_monitoring'
+    """
+    string_for_append = ';'.join([str(params[param]) for param in self.FIELDNAMES]) + '\n'
+    self.write_to_history_file(string_for_append)
+
+    # autoincrement for epoch counter here
+    self.epoch += 1
+
+
   def help(self):
     print(self.TXT.help())
 
-  def example():
+  def example(self):
     print(self.TXT.example())
-
