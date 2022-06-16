@@ -1,4 +1,3 @@
-from ipywidgets.widgets.widget_layout import Layout
 # coding=utf-8
 
 """
@@ -30,7 +29,7 @@ from genie.genie_texts import GENIE_Texts
 
 class GAN_Enjoy_Nice_Interface_Easy():
   # 
-  def __init__(self, endpoint, history_fields, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=5):
+  def __init__(self, endpoint, history_fields, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=3):
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
@@ -52,6 +51,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.epoch = -1
     self.epochs = 0
     self.last_epoch_of_previous_train = 0
+    self.timepoint = None
+    self.epochtime = float('+inf')
+    self._epochtimes = []
 
     # cheking path for endpoint
     if not os.path.exists(self.ENDPOINT):
@@ -102,6 +104,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.control_command_code = ''
     self.epoch = -1
     self.epochs = epochs
+    self.timepoint = datetime.datetime.now()
     self.last_epoch_of_previous_train = self._get_last_epoch_of_previous_train()
     display(self.interface)
     self.stop_button.layout.display = 'block'
@@ -219,7 +222,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
         'final': 'Финальное значение метрики',
     } 
 
-    fig, (m_plot, l_plot) = plt.subplots(nrows=1, ncols=2, figsize=(35, 6), facecolor='#f5f5f5')
+    fig, (m_plot, l_plot) = plt.subplots(nrows=1, ncols=2, figsize=(35, 7), facecolor='#f5f5f5')
     m_plot.set(title='График метрики (accuracy или иное)', xlabel='Эпоха обучения', ylabel='Значение')
     l_plot.set(title='График ошибки (loss)', xlabel='Эпоха обучения', ylabel='Значение')
     
@@ -321,9 +324,12 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
       # обновление картинки
       self.images_volume = len(os.listdir(self.GENERATED))
-      slider_image.min = -self.images_volume
-      play_buttons.min = -self.images_volume
-      update_image_preview(None)
+      # with output_for_props:
+      #   print(self.images_volume, slider_image.min, play_buttons.min)
+      if self.images_volume:
+        slider_image.min = -self.images_volume
+        play_buttons.min = -self.images_volume
+        update_image_preview(None)
       
       # обновление таблицы
       with output_for_table:
@@ -336,7 +342,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
     def update_data(self_widget):
       training_progress = round(100 * (self.epoch / (self.epochs-1)), 2)
       training_progress_bar.value = training_progress
-      training_progress_lbl.value = f'Прогресс обучения: {training_progress}%'
+      estimated_seconds =(self.epochs - self.epoch - 1) * self.epochtime
+      estimated_time = time.strftime("%H:%M:%S", time.gmtime(estimated_seconds))
+      training_progress_lbl.value = f'Прогресс обучения: {training_progress}%, еще {estimated_time}'
 
       updating_progress = round(100 * slider_update.value / slider_update.max, 2)
       updating_progress_bar.value = updating_progress
@@ -345,7 +353,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       with output_for_props:
         clear_output(wait=True)
         if self.epoch > 0:
-          print(f'Эпоха #{self.epoch} завершена')
+          print(f'Эпоха #{self.epoch} завершена') #, {self.epochtime} сек.
         if self.epoch == self.epochs-1:
           clear_output()
           update_buttons._playing = False
@@ -364,6 +372,16 @@ class GAN_Enjoy_Nice_Interface_Easy():
     def start_updating(self_widget):
       if self_widget.old == False and self_widget.new == True:
         update_all(self)
+    
+    def update_button_click(self_widget):
+      slider_update.value = slider_update.min
+      updating_progress = 0.00
+      updating_progress_bar.value = updating_progress
+      updating_progress_lbl.value = f'Обновление: {updating_progress}%'
+      with output_for_props:
+        clear_output(wait=True)
+        print('Обновляюсь досрочно..')
+      update_all(self)
 
     def stop_training(self_widget):
       self.control_command_code = 'stop_training'
@@ -390,7 +408,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     # auto updating mechanism
     update_buttons = widgets.Play(
-        value=self.initial_update_delay*2,
+        value=self.initial_update_delay*2 - 1,
         min=1,
         max=self.initial_update_delay*2,
         step=1,
@@ -398,7 +416,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
         description="Press play",
         _repeat = True
     )
-    slider_update = widgets.IntSlider(self.initial_update_delay*2, min=1, max=self.initial_update_delay*2, readout=True)
+    slider_update = widgets.IntSlider(self.initial_update_delay*2 - 1, min=1, max=self.initial_update_delay*2, readout=True)
     update_widget = widgets.link((update_buttons, 'value'), (slider_update, 'value'))
     update_box = widgets.HBox([update_buttons, slider_update], layout=widgets.Layout(width='95%'))
     # 
@@ -407,8 +425,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
     update_buttons.observe(start_updating, names='_playing')
     slider_update.observe(update_data, names='value')
     # 
-    slider_update_delay = widgets.IntSlider(self.initial_update_delay, min=1, max=60, continuous_update=False, readout=True, layout=widgets.Layout())
-    slider_update_delay.observe(change_delay_time)
+    slider_update_delay = widgets.IntSlider(self.initial_update_delay, min=1, max=60, continuous_update=False, readout=True)
+    slider_update_delay_lbl = widgets.Label(value='сек.', layout=widgets.Layout(margin='2px 0px 0px -28px'))
+    slider_update_delay.observe(change_delay_time, names='value')
+    slider_update_delay_box = widgets.HBox([slider_update_delay, slider_update_delay_lbl])
     
     # groups of widget for preview generated images
     img_preview = widgets.Image(
@@ -426,7 +446,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
         min=-2,
         max=-1,
         step=1,
-        interval=200,
+        interval=500,
         description="Press play",
         disabled=False
     )
@@ -450,10 +470,17 @@ class GAN_Enjoy_Nice_Interface_Easy():
     updating_progress_box = widgets.VBox([updating_progress_lbl, updating_progress_bar])
     # 
     progress_bars = widgets.VBox([training_progress_box, updating_progress_box])
+
+    update_button = widgets.Button(description='обновить сейчас', icon='refresh', button_style='info')
+    update_button.layout.width = 'initial'
+    update_button.style.button_color = '#1cd3a2'
+    update_button.on_click(update_button_click)
+
+
     
     # major parts
     table_box = widgets.Box([output_for_table], layout=widgets.Layout(border='2px solid #e0e0e0', width='40%'))
-    props_box = widgets.VBox([progress_bars, slider_update_delay, output_for_props, stop_button, update_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='24%', align_items='center'))
+    props_box = widgets.VBox([progress_bars, slider_update_delay_box, update_button, output_for_props, stop_button, update_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='24%', align_items='center'))
     graph_box = widgets.Box([output_for_graph], layout=widgets.Layout(border='2px solid #e0e0e0'))
 
     # buttons for toggle metrics of graph
@@ -580,9 +607,19 @@ class GAN_Enjoy_Nice_Interface_Easy():
     # autoincrement for epoch counter here
     self.epoch += 1
 
+    # 
+    epochtime = (datetime.datetime.now() - self.timepoint).total_seconds()
+    time_samples = 100
+    if len(self._epochtimes) == time_samples:
+      self._epochtimes.pop(0)
+    self._epochtimes.append(epochtime)
+    self.epochtime = round(sum(self._epochtimes) / time_samples, 2)
+    self.timepoint = datetime.datetime.now()
+
 
   def help(self):
     print(self.TXT.help())
 
   def example(self):
     print(self.TXT.example())
+
