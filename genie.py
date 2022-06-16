@@ -343,7 +343,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
       training_progress = round(100 * (self.epoch / (self.epochs-1)), 2)
       training_progress_bar.value = training_progress
       estimated_seconds =(self.epochs - self.epoch - 1) * self.epochtime
-      estimated_time = time.strftime("%H:%M:%S", time.gmtime(estimated_seconds))
+      if estimated_seconds > 24*60*60 - 1:
+        estimated_time = 'infinity'
+      else:
+        estimated_time = time.strftime("%H:%M:%S", time.gmtime(estimated_seconds))
       training_progress_lbl.value = f'Прогресс обучения: {training_progress}%, еще {estimated_time}'
 
       updating_progress = round(100 * slider_update.value / slider_update.max, 2)
