@@ -16,6 +16,10 @@ class GENIE_Texts():
 		text = {'rus': rus_help, 'eng': eng_help}
 		return text[self.lang].strip()
 
+	def console(self):
+		text = {'rus': rus_console, 'eng': eng_console}
+		return text[self.lang].strip()
+
 
 rus_example = '''
 !git clone -s -q https://github.com/roma-perceptron/gan-interface-ready-to-labor.git genie_lib
@@ -198,5 +202,21 @@ rus_hello = '''
 
 eng_hello = '''
 Great, ready to work! Try help() for more information and examples.
+'''
+
+rus_console = '''
+Сюда можно выводить какие-либо данные:
+  with genie.output_for_console:
+    print('Hello!')
+    ...
+    clear_output() # если нужно очистить
+'''
+
+eng_console = '''
+You can print here anything you need:
+  with genie.output_for_console:
+    print('Hello!')
+    ...
+    clear_output() # for clearing
 '''
 
