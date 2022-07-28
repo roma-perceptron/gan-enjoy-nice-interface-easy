@@ -20,8 +20,17 @@
     height: 60% !important;
   }
 
-  .girl-update_box {
+  .horizontal_line {
+    border: 2px solid #e0e0e0;
+    margin: 25px 0px;
+  }
+
+  .genie--update_box {
     display: none;
   }
 
+  //DEPRECATED
+  .girl-update_box {
+    display: none;
+  }
 </style>
