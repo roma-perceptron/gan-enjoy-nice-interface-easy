@@ -29,7 +29,7 @@ from genie.genie_texts import GENIE_Texts
 
 class GAN_Enjoy_Nice_Interface_Easy():
   # 
-  def __init__(self, endpoint, history_fields, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=3):
+  def __init__(self, endpoint, history_fields, generator=None, constant_noise=None, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=1, preview_every=None):
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
@@ -40,20 +40,26 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.CLEAR_GENERATED = clear_generated
     self.IMAGE_SHAPE = image_shape
     self.TXT = GENIE_Texts(lang=lang)
+    self.GENERATOR = generator
+    self.NOISE = constant_noise
 
     # class variables
+    self.preview_every = preview_every
     self.initial_update_delay = update_delay
     self.allowed_refresh_graph = True
     self.allowed_refresh_image = True
+    self.allowed_last100_steps = False
     self.images_volume = 0
-    self.df = pd.DataFrame({f: [None] for f in self.FIELDNAMES})
+    self.df = pd.DataFrame(columns=self.FIELDNAMES)
     self.control_command_code = ''
-    self.epoch = -1
-    self.epochs = 0
-    self.last_epoch_of_previous_train = 0
+    self.step = -1
+    self.steps = 0
+    self.last_step_of_previous_train = 0
     self.timepoint = None
-    self.epochtime = float('+inf')
-    self._epochtimes = []
+    self.steptime = float('+inf')
+    self._steptimes = []
+    self.training_progress = 0
+    self.estimated_time = float('+inf')
 
     # cheking path for endpoint
     if not os.path.exists(self.ENDPOINT):
@@ -64,6 +70,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self._create_generated_path()
     self.images_volume = len(os.listdir(self.GENERATED))
     plt.style.use(plt_style)
+    pd.set_option('display.precision', 3)
     
     # show hello
     if not silent:
@@ -71,6 +78,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
     
     # create interface
     self.interface = self.get_interface()
+    with self.output_for_console:
+      print(self.TXT.console())
 
 
   # eternal function and methods
@@ -92,26 +101,29 @@ class GAN_Enjoy_Nice_Interface_Easy():
     :param delay: int, seconds to await before execute
     """
     time.sleep(delay)
-    js_code = "document.querySelector('.girl-update_buttons').children[0].click();"
+    js_code = "document.querySelector('.genie--update_buttons').children[0].click();"
     display(Javascript(js_code))
 
 
-  def show_interface(self, epochs):
+  def show_interface(self, steps):
     """
     Render and display interface for GAN monitoring
-    :param epochs: int, number of epoch to current train process
+    :param steps: int, number of step to current train process
     """
     self.control_command_code = ''
-    self.epoch = -1
-    self.epochs = epochs
+    self.step = -1
+    self.steps = steps
     self.timepoint = datetime.datetime.now()
-    self.last_epoch_of_previous_train = self._get_last_epoch_of_previous_train()
+    self.last_step_of_previous_train = self._get_last_step_of_previous_train()
+    self.preview_every = self.steps // 100 if not self.preview_every else self.preview_every
+    self.preview_every = 1 if self.preview_every == 0 else self.preview_every
+    # 
     display(self.interface)
     self.stop_button.layout.display = 'block'
-    with self.output_for_props:
-      clear_output()
     self._patch_fontawesome()
     self._press_play_button()
+    with self.output_for_props:
+      clear_output()
 
 
   def _prepare_history_file(self):
@@ -134,14 +146,14 @@ class GAN_Enjoy_Nice_Interface_Easy():
     """
     if not os.path.exists(self.GENERATED):
       os.mkdir(self.GENERATED)
-      self._create_zero_epoch_image()
+      self._create_zero_step_image()
     elif self.CLEAR_GENERATED:
       shutil.rmtree(self.GENERATED)
       os.mkdir(self.GENERATED)
-      self._create_zero_epoch_image()
+      self._create_zero_step_image()
 
 
-  def _create_zero_epoch_image(self):
+  def _create_zero_step_image(self):
     """
     If generated path are empty, create black image as first pre-training
     result of model.
@@ -166,10 +178,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
     )
 
 
-  def _get_last_epoch_of_previous_train(self):
+  def _get_last_step_of_previous_train(self):
     """
-    Return last epoch number from generated images names
-    :return: int, number of last epoch
+    Return last step number from generated images names
+    :return: int, number of last step
     """
     if os.path.exists(self.GENERATED) and len(os.listdir(self.GENERATED)) > 0:
       files = self._get_filelist_sorted(self.GENERATED)
@@ -184,7 +196,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     Get image with given index within generated pics. If images not genered yet,
     return black 'before the times' square.
     :param index: int, idex of necessary image, default -1 (last)
-    :return: tuple of image in bytes and str number of epoch from file name
+    :return: tuple of image in bytes and str number of step from file name
     """
     if os.path.exists(self.GENERATED) and len(os.listdir(self.GENERATED)) > 0:
       # 
@@ -201,16 +213,13 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
 
   # draw plot for loss and metrics
-  def _draw_history(self, history, only='', exclude='', start_x=0, final=None, show_trend=False, show_avg=False):
+  def _draw_history(self, history, only='', exclude='', start_x=0):
     """
     Draws double plot for metrics: accuracy-like and loss separately
     :param history: dict, metrics and losses data
     :param only: list of str, which metrics must be draws and ignored all other
     :param exclude: list of str, which metrcis will be ignored
     :param start_x: int, start value of x, it mean start epoch number
-    :param final: float, if present, draws horisontal line for given value
-    :param show_trend: bool, if True, draws straight line from half to end
-    :param show_avg: bool, if True, draws mean average !NOT IMPLEMENTED NOW!
     :return: None, graph displayed in current output
     """
     # 
@@ -223,44 +232,18 @@ class GAN_Enjoy_Nice_Interface_Easy():
     } 
 
     fig, (m_plot, l_plot) = plt.subplots(nrows=1, ncols=2, figsize=(35, 7), facecolor='#f5f5f5')
-    m_plot.set(title='График метрики (accuracy или иное)', xlabel='Эпоха обучения', ylabel='Значение')
-    l_plot.set(title='График ошибки (loss)', xlabel='Эпоха обучения', ylabel='Значение')
+    m_plot.set(title='График метрики (accuracy или иное)', xlabel='Шаг обучения', ylabel='Значение')
+    l_plot.set(title='График ошибки (loss)', xlabel='Шаг обучения', ylabel='Значение')
     
-    # отрисовка всех данных которые есть в history
     for param in history:
       ax = l_plot if 'loss' in param else m_plot
       if param not in exclude:
-        # показываю примерный тренд
-        if show_trend:
-          # xdots, ydots это набор икс-координат, и y-координат по отдельности!
-          xdots = len(history[param])//2, len(history[param])-1
-          ydots = history[param][len(history[param])//2], history[param][-1]
-          ax.plot(xdots, ydots, color='r', linestyle='--', linewidth=3)
-          
-        # # рисую скользящую среднюю
-        # if show_avg:
-        #   xLen = len(history[param]) // 10
-        #   ma = lambda x: np.asarray(x).mean() # маленькая обертка для расчета среднего и возврата целого числа
-        #   xyma = [ma(history[param][i:i+xLen+1]) if i > xLen else ma(history[param][:i+1]) for i in range(len(history[param]))]
-        #   ax.plot(xyma, color='y', linewidth=6)
-        # print(*history[param].items())
-        if 'loss' in param:
-          ax.plot(range(start_x, start_x+len(history[param])), history[param], label=labeling.get(param, param))
-        else: #? это что? хм
-          ax.plot(range(start_x, start_x+len(history[param])), history[param], label=labeling.get(param, param))
-
-      # лениво узнаю сколько эпох было..
-      epochs = len(history[param])
-
-    if final:
-      m_plot.plot([final for i in range(epochs)], label=labeling.get('final', final))
-
+        ax.plot(range(start_x, start_x+len(history[param])), history[param], label=labeling.get(param, param))
+    
     m_plot.legend()
     l_plot.legend()
-
-    # 
+    
     plt.show()
-
 
 
   def get_interface(self):
@@ -273,9 +256,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
     # iternal functions and widget-callbacks
     # (use "self_widget" argument instead "self" reserved for class instance) #
     def change_image_preview(self_widget):
-      img_bytes, epoch_num = self._get_genered_image(slider_image.value)
+      img_bytes, step_num = self._get_genered_image(slider_image.value)
       img_preview.value = img_bytes
-      epoch_label.value = f'from epoch: {epoch_num}'
+      step_label.value = f'from step: {step_num}'
       # 
       if slider_image.value == -1:
         self.allowed_refresh_image = True
@@ -285,42 +268,41 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     def update_image_preview(self_widget):
       if self.allowed_refresh_image:
-        img_bytes, epoch_num = self._get_genered_image(-1)
+        img_bytes, step_num = self._get_genered_image(-1)
         img_preview.value = img_bytes
-        epoch_label.value = f'from epoch: {epoch_num}'
-      
-
-    def reset_epochs_range_now(self_widget):
-      epochs_range.options = range(self.df.shape[0])
-      epochs_range.index = (0, self.df.shape[0]-1)
-      self.allowed_refresh_graph = True
-
+        step_label.value = f'from step: {step_num}'
 
     def update_graph(self_widget):
-      if self_widget.new != (0, 0):
+      if type(self_widget.owner) == widgets.widget_bool.ToggleButton:
+        self.allowed_refresh_graph = True
+      if self_widget.new != (0, 0) and self.allowed_refresh_graph:
         metrics_to_draw = [m.description for m in metrics if m.value]
-        epochs_range_to_draw = epochs_range.index
+        indx = steps_range.index
         with output_for_graph:
           clear_output(wait=True)
-          self._draw_history(self.df[metrics_to_draw][epochs_range_to_draw[0]: epochs_range_to_draw[1]].to_dict(orient='list'), start_x=epochs_range_to_draw[0])
+          self._draw_history(self.df[metrics_to_draw][indx[0]: indx[1]].to_dict(orient='list'), start_x=indx[0])
 
 
-    def update_all(self):
-      # обновление базы со строками
-      if epochs_range.index[0] != 0 or epochs_range.index[1] != self.df.shape[0]-1:
-        self.allowed_refresh_graph = False
+    def last100_steps_range_now(self_widget):
+      self.allowed_last100_steps = True
+      self.allowed_refresh_graph = True
+      start_index = 0 if len(steps_range.options) < 101 else steps_range.options[-101]
+      steps_range.index = (start_index, steps_range.options[-1])
+        
 
-      if os.path.getsize(self.HISTORY_FILE) > 100:
-        self.df = pd.read_csv(self.HISTORY_FILE, sep=';')
+    def reset_steps_range_now(self_widget):
+      if self.df.index.size > 1:
+        steps_range.options = range(self.df.shape[0])
+        steps_range.index = (0, steps_range.options[-1])
+        self.allowed_refresh_graph = True
+        self.allowed_last100_steps = False
 
-        # обновление графиков
-        if self.allowed_refresh_graph:
-          epochs_range.options = range(self.df.shape[0])
-          epochs_range.index = (0, self.df.shape[0]-1)
-      else:
-        with output_for_graph:
-          clear_output(wait=True)
-          self._draw_history(self.df)
+
+    def update_all(self): 
+      # обновление таблицы
+      with output_for_table:
+        clear_output(wait=True)
+        display(self.df.tail(10))
 
       # обновление картинки
       self.images_volume = len(os.listdir(self.GENERATED))
@@ -330,61 +312,58 @@ class GAN_Enjoy_Nice_Interface_Easy():
         slider_image.min = -self.images_volume
         play_buttons.min = -self.images_volume
         update_image_preview(None)
-      
-      # обновление таблицы
-      with output_for_table:
-        clear_output(wait=True)
-        pd.set_option('display.precision', 3)
-        display(self.df.tail(10))
+
+      # обновление графиков
+      if self.step == 1:
+        reset_steps_range_now(None)
+
+      if steps_range.index[0] != 0 or steps_range.index[1] != steps_range.options[-1]:
+        self.allowed_refresh_graph = False
+
+      if self.allowed_last100_steps:
+        self.allowed_refresh_graph = True
+        steps_range.options = range(self.df.shape[0])
+        start_index = 0 if len(steps_range.options) < 101 else steps_range.options[-101]
+        steps_range.index = (start_index, steps_range.options[-1])
+      elif self.df.index.size > 1 and self.allowed_refresh_graph:
+        steps_range.options = range(self.df.shape[0])
+        steps_range.index = (0, self.df.shape[0]-1)
 
 
     # global updater by timer
     def update_data(self_widget):
-      training_progress = round(100 * (self.epoch / (self.epochs-1)), 2)
-      training_progress_bar.value = training_progress
-      estimated_seconds =(self.epochs - self.epoch - 1) * self.epochtime
-      if estimated_seconds > 24*60*60 - 1:
-        estimated_time = 'infinity'
-      else:
-        estimated_time = time.strftime("%H:%M:%S", time.gmtime(estimated_seconds))
-      training_progress_lbl.value = f'Прогресс обучения: {training_progress}%, еще {estimated_time}'
-
-      updating_progress = round(100 * slider_update.value / slider_update.max, 2)
-      updating_progress_bar.value = updating_progress
-      updating_progress_lbl.value = f'Обновление: {updating_progress}%'
+      training_progress_bar.value = self.training_progress
+      training_progress_lbl.value = f'Прогресс обучения: {self.training_progress}%, еще {self.estimated_time}'
 
       with output_for_props:
         clear_output(wait=True)
-        if self.epoch > 0:
-          print(f'Эпоха #{self.epoch} завершена') #, {self.epochtime} сек.
-        if self.epoch == self.epochs-1:
+        if self.step > 0:
+          print(f'Шаг #{self.step} завершен.\nВ среднем {self.steptime} сек. на шаг.')
+        if self.step == self.steps-1:
           clear_output()
           update_buttons._playing = False
           stop_button.layout.display = 'none'
-          print(f'Обучение завершено! {self.epochs} эпох!')
-          updating_progress = 100.00
-          updating_progress_bar.value = updating_progress
-          updating_progress_lbl.value = f'Обновление: {updating_progress}%'
+          print(f'Обучение завершено! {self.steps} шагов обучения!')
           update_all(self)
           return None
         if slider_update.value == slider_update.max:
-          print('Обновляюсь..')
+          # print('Обновляюсь..')
           update_all(self)
           slider_update.value = 1
+
 
     def start_updating(self_widget):
       if self_widget.old == False and self_widget.new == True:
         update_all(self)
+
     
     def update_button_click(self_widget):
-      slider_update.value = slider_update.min
-      updating_progress = 0.00
-      updating_progress_bar.value = updating_progress
-      updating_progress_lbl.value = f'Обновление: {updating_progress}%'
       with output_for_props:
         clear_output(wait=True)
         print('Обновляюсь досрочно..')
       update_all(self)
+      update_data(self_widget)
+      
 
     def stop_training(self_widget):
       self.control_command_code = 'stop_training'
@@ -394,9 +373,17 @@ class GAN_Enjoy_Nice_Interface_Easy():
         print('Останавливаю обучение..')
         update_all(self)
 
-    def change_delay_time(self_widget):
-      slider_update.max = 2 * slider_update_delay.value
-      update_buttons.max = 2 * slider_update_delay.value
+    def get_animation_now(self_widget):
+      if self.images_volume > 0:
+        self.get_animation(silent=True)
+        msg = f'Анимация готова, в папке {self.ENDPOINT}\nБольше возможностей по созданию анимации при явном использовании genie.get_animation()'
+      else:
+        msg = 'Примеров работы генератора нет'
+      with output_for_props:
+        clear_output()
+        print(msg)
+        time.sleep(5)
+        clear_output()
 
 
     # body of code for bulding interface
@@ -408,31 +395,28 @@ class GAN_Enjoy_Nice_Interface_Easy():
     output_for_prevs = widgets.Output()
     
     self.output_for_props = output_for_props
+    self.output_for_console = widgets.Output()
 
-    # auto updating mechanism
+    # new auto updating mechanism
     update_buttons = widgets.Play(
-        value=self.initial_update_delay*2 - 1,
+        value=1,
         min=1,
-        max=self.initial_update_delay*2,
+        max=self.initial_update_delay * 4,
         step=1,
-        interval=500,
+        interval=250,
         description="Press play",
         _repeat = True
     )
-    slider_update = widgets.IntSlider(self.initial_update_delay*2 - 1, min=1, max=self.initial_update_delay*2, readout=True)
+    slider_update = widgets.IntSlider(1, min=1, max=update_buttons.max, readout=True)
     update_widget = widgets.link((update_buttons, 'value'), (slider_update, 'value'))
     update_box = widgets.HBox([update_buttons, slider_update], layout=widgets.Layout(width='95%'))
+    self.update_box = update_box
     # 
-    update_box.add_class('girl-update_box')
-    update_buttons.add_class('girl-update_buttons')
+    update_box.add_class('genie--update_box')
+    update_buttons.add_class('genie--update_buttons')
     update_buttons.observe(start_updating, names='_playing')
     slider_update.observe(update_data, names='value')
-    # 
-    slider_update_delay = widgets.IntSlider(self.initial_update_delay, min=1, max=60, continuous_update=False, readout=True)
-    slider_update_delay_lbl = widgets.Label(value='сек.', layout=widgets.Layout(margin='2px 0px 0px -28px'))
-    slider_update_delay.observe(change_delay_time, names='value')
-    slider_update_delay_box = widgets.HBox([slider_update_delay, slider_update_delay_lbl])
-    
+
     # groups of widget for preview generated images
     img_preview = widgets.Image(
         value=self._get_genered_image(-1)[0],
@@ -454,8 +438,10 @@ class GAN_Enjoy_Nice_Interface_Easy():
         disabled=False
     )
     play_widget = widgets.jslink((play_buttons, 'value'), (slider_image, 'value'))
-    play_box = widgets.VBox([slider_image, play_buttons], layout=widgets.Layout(align_items='center'))
-    epoch_label = widgets.Label(value='before training')
+    make_animation = widgets.Button(description='Сделать анимацию')
+    make_animation.on_click(get_animation_now)
+    play_box = widgets.VBox([slider_image, widgets.HBox([play_buttons, make_animation])], layout=widgets.Layout(align_items='center'))
+    step_label = widgets.Label(value='before training')
 
     # stop button
     stop_button = widgets.Button(description='завершить обучение', icon='cancel')
@@ -465,25 +451,22 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     #progress bars
     training_progress_lbl = widgets.Label('Прогресс обучения: 0%')
-    training_progress_bar = widgets.FloatProgress(value=0, style={'bar_color': '#00bbff'}, layout=widgets.Layout(margin='-10px 0px 0px 0px'))
+    training_progress_bar = widgets.FloatProgress(value=0, style={'bar_color': '#1cd3a2'}, layout=widgets.Layout(margin='-10px 0px 0px 0px')) #1cd3a2 00bbff
     training_progress_box = widgets.VBox([training_progress_lbl, training_progress_bar], layout=widgets.Layout(margin='0px 0px 10px 0px'))
     # 
-    updating_progress_lbl = widgets.Label('Обновление: 0%')
-    updating_progress_bar = widgets.FloatProgress(value=0, style={'bar_color': '#1cd3a2'}, layout=widgets.Layout(margin='-10px 0px 0px 0px')) #1cd3a2
-    updating_progress_box = widgets.VBox([updating_progress_lbl, updating_progress_bar])
-    # 
-    progress_bars = widgets.VBox([training_progress_box, updating_progress_box])
+    progress_bars = widgets.VBox([training_progress_box])
 
     update_button = widgets.Button(description='обновить сейчас', icon='refresh', button_style='info')
     update_button.layout.width = 'initial'
     update_button.style.button_color = '#1cd3a2'
     update_button.on_click(update_button_click)
+    # self.update_button = update_button
+    update_button.layout.display = 'none' # отключение отображения кнопки
 
 
-    
     # major parts
     table_box = widgets.Box([output_for_table], layout=widgets.Layout(border='2px solid #e0e0e0', width='40%'))
-    props_box = widgets.VBox([progress_bars, slider_update_delay_box, update_button, output_for_props, stop_button, update_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='24%', align_items='center'))
+    props_box = widgets.VBox([progress_bars, update_button, output_for_props, stop_button, update_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='24%', align_items='center'))
     graph_box = widgets.Box([output_for_graph], layout=widgets.Layout(border='2px solid #e0e0e0'))
 
     # buttons for toggle metrics of graph
@@ -500,29 +483,34 @@ class GAN_Enjoy_Nice_Interface_Easy():
       m.observe(update_graph, names='value')
     metrics_box = widgets.HBox(metrics, layout=widgets.Layout(justify_content='space-around', margin='25px 0px 10px 0px'))
 
-    # complex widget for manage epoch range for graph
-    epochs_range = widgets.SelectionRangeSlider(
-        options=range(self.df.shape[0]),
-        index=(0, self.df.shape[0]-1),
-        description='Диапазон эпох:',
+    # complex widget for manage step range for graph
+    steps_range = widgets.SelectionRangeSlider(
+        options=range(2),
+        index=(0, 1),
+        description='Диапазон:',
         continuous_update=False,
         layout=widgets.Layout(width='90%'),
         style={'description_width': 'initial'}
     )
-    epochs_range.observe(update_graph, names='value')
+    steps_range.observe(update_graph, names='value')
     # 
-    reset_epochs_range = widgets.Button(description='Весь диапазон')
-    reset_epochs_range.on_click(reset_epochs_range_now)
-    epochs_range_box = widgets.HBox([epochs_range, reset_epochs_range], layout=widgets.Layout(justify_content='space-between', margin='10px 0px 0px 0px'))
+    last100_steps_range = widgets.Button(description='Последние 100')
+    last100_steps_range.on_click(last100_steps_range_now)
+    # 
+    reset_steps_range = widgets.Button(description='Весь диапазон')
+    reset_steps_range.on_click(reset_steps_range_now)
+    steps_range_box = widgets.HBox([steps_range, last100_steps_range, reset_steps_range], layout=widgets.Layout(justify_content='space-between', margin='10px 0px 0px 0px'))
     
     # build all together
-    preview_box = widgets.VBox([img_preview, epoch_label, play_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='35%', align_items='center'))
+    preview_box = widgets.VBox([img_preview, step_label, play_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='35%', align_items='center'))
     upper_box = widgets.HBox([preview_box, table_box, props_box], layout=widgets.Layout(justify_content='space-between'))
-    lower_box = widgets.VBox([metrics_box, graph_box, epochs_range_box])
+    hor_line = widgets.Box()
+    lower_box = widgets.VBox([metrics_box, graph_box, steps_range_box, hor_line, self.output_for_console])
     main_box = widgets.VBox([upper_box, lower_box], layout=widgets.Layout(align_content='space-around', border='10px solid transparent', width='100%'))
     # 
     upper_box.add_class('upper_box')
     lower_box.add_class('lower_box')
+    hor_line.add_class('horizontal_line')
 
     # upload stylesheet file
     with open('genie/utils/styles.css', mode='r') as f:
@@ -532,17 +520,23 @@ class GAN_Enjoy_Nice_Interface_Easy():
     interface = widgets.Box([widgets.HTML(data_input_style), main_box])
     interface.add_class('main')
     
+    with output_for_graph:
+      clear_output(wait=True)
+      self._draw_history({f: [None] for f in self.FIELDNAMES})
     # 
     return interface
 
-
-  # def how_many_lines(self):
-  #   with open(self.HISTORY_FILE) as f:
-  #     return sum(1 for line in f) - 1   # minus 1, because first is header
+  
+  def change_delay_time(self, value=1):
+    value = np.clip(float(value), 1, 60).astype(int)
+    self.update_box.children[0].max = 4 * value
+    self.update_box.children[1].max = 4 * value
+    with self.output_for_console:
+      print(f'Время задержки перед обновлением изменено, теперь: {value} сек.')
 
 
   # отрисовква генерации
-  def show_gen_cat(self, generator, noise, epoch_number=False, verbose=0, path_for_generated=''):
+  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None):
   # 
     """
     """
@@ -560,9 +554,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
       path_for_generated = self.GENERATED
     next_num = len(os.listdir(path_for_generated))
 
-    if not epoch_number:
-      epoch_number = self.last_epoch_of_previous_train + self.epoch
-    pic.save('{}/{}_e{}.png'.format(path_for_generated, next_num, epoch_number), format='png')
+    if not step_number:
+      step_number = self.last_step_of_previous_train + self.step
+    pic.save('{}/{}_e{}.png'.format(path_for_generated, next_num, step_number), format='png')
 
     if verbose:
       display(pic)
@@ -598,26 +592,48 @@ class GAN_Enjoy_Nice_Interface_Easy():
     with open(self.HISTORY_FILE, mode='a') as f:
       f.writelines(lines)
 
+  
+  def compute_time(self):
+    """
+    Compute time duration of one step and etc
+    """
+    steptime = (datetime.datetime.now() - self.timepoint).total_seconds()
+    time_samples = 100
+    if len(self._steptimes) == time_samples:
+      self._steptimes.pop(0)
+    self._steptimes.append(steptime)
+    self.steptime = round(sum(self._steptimes) / time_samples, 2)
+    self.timepoint = datetime.datetime.now()
+
+    self.training_progress = round(100 * (self.step / (self.steps-1)), 2)
+    self.estimated_seconds = (self.steps - self.step - 1) * self.steptime
+    if self.estimated_seconds > 24 * 60 * 60 - 1:
+      self.estimated_time = 'infinity'
+    else:
+      self.estimated_time = time.strftime("%H:%M:%S", time.gmtime(self.estimated_seconds))
+
 
   def update_data(self, params):
     """
     Interface for transfer history params from your training function to GENIE
     :param params: dict, key-value and keys must be same as 'metrics_for_monitoring'
     """
+    # update internal dataframe object
+    self.df = self.df.append(params, ignore_index=True)
+
+    # preparation data and write to csv
     string_for_append = ';'.join([str(params[param]) for param in self.FIELDNAMES]) + '\n'
     self.write_to_history_file(string_for_append)
 
-    # autoincrement for epoch counter here
-    self.epoch += 1
+    # increment for step counter here
+    self.step += 1
 
-    # 
-    epochtime = (datetime.datetime.now() - self.timepoint).total_seconds()
-    time_samples = 100
-    if len(self._epochtimes) == time_samples:
-      self._epochtimes.pop(0)
-    self._epochtimes.append(epochtime)
-    self.epochtime = round(sum(self._epochtimes) / time_samples, 2)
-    self.timepoint = datetime.datetime.now()
+    # compute time duration of one step and etc
+    self.compute_time()
+
+    # making preview of generator
+    if self.GENERATOR and type(self.NOISE) != type(None) and self.step % self.preview_every == 0:
+      self.make_gen_preview(self.GENERATOR, self.NOISE)
 
 
   def help(self):
