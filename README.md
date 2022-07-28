@@ -2,6 +2,8 @@
 ![genie_interface](https://user-images.githubusercontent.com/105862211/173179551-0617b592-570c-4b79-bcee-25f66a1962d9.png)
 Tool for monitoring and manage(in future) process of trainig GANs in Colab/Jupiter env
 
+Live tutorial: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUIruHKHl5R?usp=sharing
+
 # *Key features*
 - Real-time monitoring for losses and metrics (stored each epoch):
   - text table, last 10 epochs
@@ -11,7 +13,7 @@ Tool for monitoring and manage(in future) process of trainig GANs in Colab/Jupit
   - update & show last preview
   - seek & show any previous previews
   - player for preview from any position right during training process and after
-  - creating gif animation *(not implemented in interface now, just class function)*
+  - creating gif animation
 
 - Store all data in .csv and png files, you can choose endpoint as local or google drive at once or transfer after training
 
@@ -19,6 +21,4 @@ Tool for monitoring and manage(in future) process of trainig GANs in Colab/Jupit
 
 - Interface:
   - indicating whole training progress
-  - indicating delay before next data update
-  - update delay customizable in 1-60 second range
   - button for manual interruption training process
