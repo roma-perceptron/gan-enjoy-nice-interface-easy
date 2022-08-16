@@ -22,71 +22,14 @@ class GENIE_Texts():
 
 
 rus_example = '''
-!git clone -s -q https://github.com/roma-perceptron/gan-interface-ready-to-labor.git genie_lib
-from genie_lib import genie_lib
-import threading
-
-metrics_for_monitoring = ['loss', 'accuracy', 'your_custom_complex_metric']
-
-genie = GAN_Enjoy_Nice_Interface_Easy('/content/monitoring/', metrics_for_monitoring)
-
-epochs = 100
-
-def training_func(epochs):
-# как часто дозаписывать данные, в эпохах
-save_period = 1
-
-"""
-код для подготовки, batch_size, labels и прочее
-"""
-
-# создание словаря для хранения данных в памяти
-history = {field_name: [] for field_name in metrics_for_monitoring}
-
-# цикл для эпох
-for epoch in range(epochs):
-
-  """
-  ваш код обучения
-  """
-
-  # запись данных по метрикам в словарь истории
-  history['loss'].append(your_var_with_this_metric)
-  history['accuracy'].append(your_var_with_this_metric)
-  # пример ниже для демонстрации того что вы можете накапливать не только
-  # встроенные метрики, но и свои собственные, если это необходимо
-  history['your_custom_complex_metric'].append(your_var_with_this_metric)
-
-  # условие для очередной дозаписи данных
-  if epoch % save_period == 0:  
-    
-    # этот код преобразует последние save_period записей в словарях в строки для дозаписи
-    data_for_write = zip(*[history[field][-save_period:] for field in metrics_for_monitoring])
-    string_lines = [';'.join([str(e) for e in line])+'\n' for line in data_for_write]
-    
-    # для дозаписи используется встроенный метод из экземпляра класса genie
-    genie.write_to_history_file(string_lines)
-
-    # для генерации используется так же встроенный метод; ему необходимо передать ваш генератор и константный шум
-    genie.show_gen_cat(generator, noise=your_noise_for_generate_previews, epoch_number=epoch)
-    
-  # в конце эпохи нужно сообщить экземпляру класса номер последней эпохи
-  genie.epoch = epoch
-
-  # интерфейс имеет кнопку досрочного прекращения обучения, этот код для нее
-  # не пренебрегайте этим, т.к. после запуска обучения в потоке, прекратить его через остановку ячейки будет невозможно
-  if genie.control_command_code == 'stop_training':
-    break
-    
-thread = threading.Thread(target=training_func, args=(epochs,))
-thread.start()
-
-genie.show_interface(epochs=epochs)
+Пример в колаб-ноутбуке: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUIruHKHl5R?usp=sharing
 '''
 
-eng_example = rus_example
+eng_example = '''
+Live example: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUIruHKHl5R?usp=sharing
+'''
 
-rus_help = '''
+rus_help__deprecated = '''
 GAN: Enjoy Nice Interface Easy или просто GENIE это небольшая библиотека предназанченная для облегчения процесса
 мониторинга за обучением генеративно-состязательных сетей (GAN). А в будущем, возможно появятся и по управлению
 гиперпараметрами.
@@ -192,9 +135,12 @@ GAN: Enjoy Nice Interface Easy или просто GENIE это небольша
   genie.show_interface(epochs=epochs)
 '''
 
-eng_help = '''
+eng_help__deprecated = '''
 Sorry, english version in process, try russian.
 '''
+
+rus_help = rus_example
+eng_help = eng_example
 
 rus_hello = '''
 Отлично, все готово к работе! Используй метод help() если нужно больше инофмации и примеры.
