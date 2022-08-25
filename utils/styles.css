@@ -13,16 +13,28 @@
   }
 
   .upper_box {
-    height: 40% !important;
+    height: 37% !important;
   }
 
   .lower_box {
-    height: 60% !important;
+    height: 63% !important;
+  }
+
+  .metrics_box_ {
+    height: 40px;
+  }
+
+  .steps_range_box_ {
+    height: 40px;
+  }
+
+  .graph_box_ {
+    height: 80%;
   }
 
   .horizontal_line {
     border: 2px solid #e0e0e0;
-    margin: 25px 0px;
+    margin: 10px 0px;
   }
 
   .genie--update_box {
