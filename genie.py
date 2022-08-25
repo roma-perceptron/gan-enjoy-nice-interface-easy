@@ -21,6 +21,7 @@ from PIL import Image
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+from traitlets import TraitError
 
 from IPython.display import Javascript
 from IPython.display import clear_output
@@ -29,7 +30,7 @@ from genie.genie_texts import GENIE_Texts
 
 class GAN_Enjoy_Nice_Interface_Easy():
   # 
-  def __init__(self, endpoint, history_fields, generator=None, constant_noise=None, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=1, preview_every=None):
+  def __init__(self, endpoint, history_fields, generator=None, constant_noise=None, separator=';', preview_size=250, clear_generated=True, image_shape=(64, 64, 3), plt_style='default', lang='rus', silent=False, update_delay=1, preview_every=None, methods=None):
     # class constants
     self.ENDPOINT = endpoint if endpoint.endswith('/') else endpoint + '/'
     self.HISTORY_FILE = self.ENDPOINT + 'history.csv'
@@ -42,6 +43,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.TXT = GENIE_Texts(lang=lang)
     self.GENERATOR = generator
     self.NOISE = constant_noise
+    self.METHODS = methods
 
     # class variables
     self.preview_every = preview_every
@@ -78,8 +80,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
     
     # create interface
     self.interface = self.get_interface()
-    with self.output_for_console:
-      print(self.TXT.console())
+    # with self.output_for_console:
+    #   print(self.TXT.console())
 
 
   # eternal function and methods
@@ -326,9 +328,13 @@ class GAN_Enjoy_Nice_Interface_Easy():
         start_index = 0 if len(steps_range.options) < 101 else steps_range.options[-101]
         steps_range.index = (start_index, steps_range.options[-1])
       elif self.df.index.size > 1 and self.allowed_refresh_graph:
-        steps_range.options = range(self.df.shape[0])
-        steps_range.index = (0, self.df.shape[0]-1)
-
+        try:
+          steps_range.options = range(self.df.shape[0])
+          steps_range.index = (0, self.df.shape[0]-1)
+        except TraitError:
+          # print('Ошибка из-за какой-то рассинхронизации, не успевают обновиться значения в виджете. Просто пробую еще разок.')
+          steps_range.options = range(self.df.shape[0])
+          steps_range.index = (0, self.df.shape[0]-1)
 
     # global updater by timer
     def update_data(self_widget):
@@ -395,7 +401,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     output_for_prevs = widgets.Output()
     
     self.output_for_props = output_for_props
-    self.output_for_console = widgets.Output()
+    self.output_for_console = widgets.Output(layout=widgets.Layout(margin='3px 0px 0px 0px'))
 
     # new auto updating mechanism
     update_buttons = widgets.Play(
@@ -468,6 +474,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     table_box = widgets.Box([output_for_table], layout=widgets.Layout(border='2px solid #e0e0e0', width='40%'))
     props_box = widgets.VBox([progress_bars, update_button, output_for_props, stop_button, update_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='24%', align_items='center'))
     graph_box = widgets.Box([output_for_graph], layout=widgets.Layout(border='2px solid #e0e0e0'))
+    graph_box.add_class('graph_box')
 
     # buttons for toggle metrics of graph
     metrics = [
@@ -482,6 +489,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
     for m in metrics:
       m.observe(update_graph, names='value')
     metrics_box = widgets.HBox(metrics, layout=widgets.Layout(justify_content='space-around', margin='25px 0px 10px 0px'))
+    metrics_box.add_class('metrics_box')
 
     # complex widget for manage step range for graph
     steps_range = widgets.SelectionRangeSlider(
@@ -500,12 +508,20 @@ class GAN_Enjoy_Nice_Interface_Easy():
     reset_steps_range = widgets.Button(description='Весь диапазон')
     reset_steps_range.on_click(reset_steps_range_now)
     steps_range_box = widgets.HBox([steps_range, last100_steps_range, reset_steps_range], layout=widgets.Layout(justify_content='space-between', margin='10px 0px 0px 0px'))
-    
+    steps_range_box.add_class('steps_range_box')
+
+    # buttons for user-methods
+    if self.METHODS:
+      buttons = [widgets.Button(description=method[0]) for method in self.METHODS]
+      for i, user_button in enumerate(buttons):
+        user_button.on_click(self.METHODS[i][1])
+    user_buttons = widgets.HBox(buttons) if self.METHODS else widgets.HBox()
+
     # build all together
     preview_box = widgets.VBox([img_preview, step_label, play_box], layout=widgets.Layout(border='2px solid #e0e0e0', width='35%', align_items='center'))
     upper_box = widgets.HBox([preview_box, table_box, props_box], layout=widgets.Layout(justify_content='space-between'))
     hor_line = widgets.Box()
-    lower_box = widgets.VBox([metrics_box, graph_box, steps_range_box, hor_line, self.output_for_console])
+    lower_box = widgets.VBox([metrics_box, graph_box, steps_range_box, hor_line, user_buttons, self.output_for_console])
     main_box = widgets.VBox([upper_box, lower_box], layout=widgets.Layout(align_content='space-around', border='10px solid transparent', width='100%'))
     # 
     upper_box.add_class('upper_box')
@@ -641,4 +657,3 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
   def example(self):
     print(self.TXT.example())
-
