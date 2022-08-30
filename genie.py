@@ -550,21 +550,47 @@ class GAN_Enjoy_Nice_Interface_Easy():
     with self.output_for_console:
       print(f'Время задержки перед обновлением изменено, теперь: {value} сек.')
 
-
-  # отрисовква генерации
-  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None):
   # 
-    """
-    """
-    mode = None
-    generated = generator.predict(np.asarray([noise]))[0]
+  def compose_generated(self, generated, shift=0):
+    
+    l = len(generated)
+
+    if l == 1:
+      rows, cols = 1, 1
+    else:
+      cols = int(l ** 0.5)
+      rows = l // cols
+
     if generated.ndim == 3 and generated.shape[-1] == 3:
       mode = 'RGB'
     else:
-      generated = generated.reshape(generated.shape[:2])
-    # 
-    pic = Image.fromarray((255 * generated).astype('uint8'), mode=mode)
-    pic.format = 'png'
+      mode = None
+
+    width = generated[0].shape[0]
+    height = generated[0].shape[1]
+
+    combined_img = Image.new('RGB', (width * rows + shift * (rows-1), height * cols + shift * (cols-1)))
+    combined_img.format = 'png'
+    index = 0
+    for r in range(cols):
+      for c in range(rows):
+        if mode:
+          next_img = Image.fromarray(255 * generated[index], mode=mode)
+        else:
+          next_img = Image.fromarray(255 * generated[index].reshape(generated[index].shape[:2]), mode=None)
+        combined_img.paste(next_img, (width * c + shift * c, height * r + shift * r))
+        index += 1
+
+    return combined_img
+
+
+  # отрисовква генерации
+  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None, shift=0):
+  # 
+    """
+    """
+    generated = generator.predict(noise)
+    pic = self.compose_generated(generated, shift=shift)
 
     if not path_for_generated:
       path_for_generated = self.GENERATED
@@ -657,3 +683,4 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
   def example(self):
     print(self.TXT.example())
+
