@@ -133,8 +133,9 @@ class GAN_Enjoy_Nice_Interface_Easy():
     Make empty .csv file for history data (empty, but with headers).
     If file exists, it will be overwritten.
     """
-    if os.path.exists(self.HISTORY_FILE):
-      os.remove(self.HISTORY_FILE)
+    if self.CLEAR_GENERATED:
+      if os.path.exists(self.HISTORY_FILE):
+        os.remove(self.HISTORY_FILE)
 
     if not os.path.exists(self.HISTORY_FILE):
       with open(self.HISTORY_FILE, mode='w') as f:
