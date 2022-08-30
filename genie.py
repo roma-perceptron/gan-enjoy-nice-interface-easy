@@ -585,12 +585,15 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
 
   # отрисовква генерации
-  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None, shift=0):
+  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None, shift=0, resize_to=None):
   # 
     """
     """
     generated = generator.predict(noise)
     pic = self.compose_generated(generated, shift=shift)
+    
+    if resize_to:
+      pic = pic.resize(resize_to)
 
     if not path_for_generated:
       path_for_generated = self.GENERATED
