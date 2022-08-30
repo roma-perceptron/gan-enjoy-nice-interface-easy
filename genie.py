@@ -52,7 +52,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
     self.allowed_refresh_image = True
     self.allowed_last100_steps = False
     self.images_volume = 0
-    self.df = pd.DataFrame(columns=self.FIELDNAMES)
+    # self.df = pd.DataFrame(columns=self.FIELDNAMES)
+    self.df = pd.DataFrame(columns=self.FIELDNAMES) if self.CLEAR_GENERATED or not os.path.exists(self.HISTORY_FILE) else pd.read_csv(self.HISTORY_FILE, sep=';')
     self.control_command_code = ''
     self.step = -1
     self.steps = 0
