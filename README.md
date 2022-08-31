@@ -1,6 +1,7 @@
 # GAN: Enjoy Nice Interface Easy (GENIE)
-![genie_interface](https://user-images.githubusercontent.com/105862211/173179551-0617b592-570c-4b79-bcee-25f66a1962d9.png)
-Tool for monitoring and manage(in future) process of trainig GANs in Colab/Jupiter env
+![image](https://user-images.githubusercontent.com/105862211/187625899-42a438d1-79f1-4647-9cfd-f02f4d763ab6.png)
+
+Tool for monitoring and manage process of trainig GANs in Colab/Jupiter env
 
 Live tutorial: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUIruHKHl5R?usp=sharing
 
@@ -8,6 +9,12 @@ Live tutorial: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUI
 - Real-time monitoring for losses and metrics (stored each epoch):
   - text table, last 10 epochs
   - graph view with customizable epoch range and metric set
+  
+- Managing hyper-parameters in real-time
+  - write code for change learning_rate and other
+  - wrap it in functions
+  - make list/tuple with pairs of 'name' & function
+  - add it to constructor of GENIE instance and your buttons will appear in interface
 
 - Generator preview player:
   - update & show last preview
@@ -22,3 +29,4 @@ Live tutorial: https://colab.research.google.com/drive/1F8lwUuRlzVHYtKl_x0Lf5ZUI
 - Interface:
   - indicating whole training progress
   - button for manual interruption training process
+  - custom buttons with user code for real-time managing train process
