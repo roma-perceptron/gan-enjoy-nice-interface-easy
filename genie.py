@@ -563,7 +563,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
       cols = int(l ** 0.5)
       rows = l // cols
 
-    if generated.ndim == 3 and generated.shape[-1] == 3:
+    if generated[0].ndim == 3 and generated[0].shape[-1] == 3:
       mode = 'RGB'
     else:
       mode = None
