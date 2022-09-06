@@ -1,5 +1,5 @@
 # GAN: Enjoy Nice Interface Easy (GENIE)
-![image](https://user-images.githubusercontent.com/105862211/187625899-42a438d1-79f1-4647-9cfd-f02f4d763ab6.png)
+![image](https://user-images.githubusercontent.com/105862211/188597941-2deb9561-cc43-4b20-84ab-44505b8cef66.png)
 
 Tool for monitoring and manage process of trainig GANs in Colab/Jupiter env
 
