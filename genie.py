@@ -587,7 +587,7 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
 
   # отрисовква генерации
-  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None, shift=0, resize_to=None):
+  def make_gen_preview(self, generator, noise, step_number=False, verbose=0, path_for_generated=None, shift=0, resize_to=None, save=True):
   # 
     """
     """
@@ -603,7 +603,8 @@ class GAN_Enjoy_Nice_Interface_Easy():
 
     if not step_number:
       step_number = self.last_step_of_previous_train + self.step
-    pic.save('{}/{}_e{}.png'.format(path_for_generated, next_num, step_number), format='png')
+    if save:
+      pic.save('{}/{}_e{}.png'.format(path_for_generated, next_num, step_number), format='png')
 
     if verbose:
       display(pic)
