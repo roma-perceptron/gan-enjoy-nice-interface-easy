@@ -576,10 +576,11 @@ class GAN_Enjoy_Nice_Interface_Easy():
     index = 0
     for r in range(cols):
       for c in range(rows):
+        reformed_arr = np.clip((generated[index] * 255), 0, 255).astype('uint8')
         if mode:
-          next_img = Image.fromarray(255 * generated[index], mode=mode)
+          next_img = Image.fromarray(reformed_arr, mode=mode)
         else:
-          next_img = Image.fromarray(255 * generated[index].reshape(generated[index].shape[:2]), mode=None)
+          next_img = Image.fromarray(reformed_arr.reshape(reformed_arr.shape[:2]), mode=None)
         combined_img.paste(next_img, (width * c + shift * c, height * r + shift * r))
         index += 1
 
